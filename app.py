@@ -8,8 +8,9 @@ import logging
 # 配置日志
 logging.basicConfig(level=logging.DEBUG)
 
-# 加载环境变量
-load_dotenv()
+# 仅在非生产环境加载.env文件
+if os.getenv('VERCEL_ENV') is None:
+    load_dotenv()
 
 # 创建Flask应用
 app = Flask(__name__)
@@ -52,6 +53,9 @@ api.add_namespace(api_ns, path='/system')
 def handle_error(error):
     app.logger.error(f'An error occurred: {error}', exc_info=True)
     return {'error': str(error)}, 500
+
+# Vercel 需要这个应用实例
+application = app
 
 if __name__ == '__main__':
     # 确保调试模式开启
