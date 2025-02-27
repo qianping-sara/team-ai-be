@@ -58,9 +58,6 @@ try:
         max_content_length = default_max_content_length
     app.config['MAX_CONTENT_LENGTH'] = max_content_length
 
-    # 确保上传目录存在
-    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-
     # 导入路由
     from routes.document_routes import document_ns
     from routes.api_routes import api_ns
