@@ -7,20 +7,18 @@ from typing import List, Tuple, Dict, Any
 from models.document_models import Document, DocumentSection, DocumentContent, ContentType, DocumentStatus
 from database.mongo_client import documents, document_sections, document_contents
 import re
+from io import BytesIO
 
 class DocumentProcessor:
-    def __init__(self, filepath: str):
-        if not os.path.exists(filepath):
-            raise FileNotFoundError(f"文件不存在: {filepath}")
-            
-        self.filepath = filepath
-        self.filename = os.path.basename(filepath)
+    def __init__(self, filename: str, file_content: bytes):
+        self.filename = filename
+        self.file_content = file_content
         self.file_type = self._get_file_type()
         self.document_id = str(uuid.uuid4())
         
     def _get_file_type(self) -> str:
         """根据文件扩展名判断文件类型"""
-        ext = os.path.splitext(self.filepath)[1].lower()
+        ext = os.path.splitext(self.filename)[1].lower()
         type_map = {
             '.pdf': 'application/pdf',
             '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -82,13 +80,12 @@ class DocumentProcessor:
             return self.document_id
 
         except Exception as e:
-            # 如果在创建文档记录时就出错，直接抛出异常
             raise Exception(f"处理文档时出错: {str(e)}")
 
     def _process_docx(self):
         """处理Word文档"""
         try:
-            doc = DocxDocument(self.filepath)
+            doc = DocxDocument(BytesIO(self.file_content))
             current_section = None
             section_stack = []
             last_level = 0
@@ -212,7 +209,7 @@ class DocumentProcessor:
     def _process_pdf(self):
         """处理PDF文档"""
         try:
-            reader = PdfReader(self.filepath)
+            reader = PdfReader(BytesIO(self.file_content))
             section = self._create_default_section()
             
             for i, page in enumerate(reader.pages):
@@ -232,16 +229,16 @@ class DocumentProcessor:
         """处理文本文档"""
         try:
             section = self._create_default_section()
+            text_content = self.file_content.decode('utf-8')
             
-            with open(self.filepath, 'r', encoding='utf-8') as f:
-                content = DocumentContent(
-                    self.document_id,
-                    section['_id'],
-                    ContentType.TEXT
-                )
-                content.set_text_content(f.read())
-                content.data['_id'] = str(uuid.uuid4())
-                content.data['order'] = 10
-                document_contents.insert_one(content.data)
+            content = DocumentContent(
+                self.document_id,
+                section['_id'],
+                ContentType.TEXT
+            )
+            content.set_text_content(text_content)
+            content.data['_id'] = str(uuid.uuid4())
+            content.data['order'] = 10
+            document_contents.insert_one(content.data)
         except Exception as e:
             raise Exception(f"处理文本文档时出错: {str(e)}") 

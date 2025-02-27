@@ -49,8 +49,6 @@ try:
     )
 
     # 配置
-    app.config['UPLOAD_FOLDER'] = os.getenv('UPLOAD_FOLDER', 'uploads')
-    
     # 设置最大内容长度（16MB）
     default_max_content_length = 16 * 1024 * 1024  # 16MB in bytes
     try:

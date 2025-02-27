@@ -81,11 +81,10 @@ class DocumentUpload(Resource):
         
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
-            filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
-            file.save(filepath)
+            file_content = file.read()  # 直接读取文件内容到内存
             
             # 处理文档
-            processor = DocumentProcessor(filepath)
+            processor = DocumentProcessor(filename, file_content)  # 修改为传递文件内容而不是文件路径
             doc_id = processor.process_and_save()
             
             return {
