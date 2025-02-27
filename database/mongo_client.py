@@ -2,10 +2,18 @@ from pymongo import MongoClient
 from dotenv import load_dotenv
 import os
 import sys
+import certifi
+import logging
+from pymongo.server_api import ServerApi
+
+# 配置日志
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 # 仅在非生产环境加载.env文件
 if os.getenv('VERCEL_ENV') is None:
     load_dotenv()
+    logger.info("Local environment detected, loading .env file")
 
 # MongoDB连接配置
 MONGODB_URI = os.getenv('MONGODB_URI')
@@ -22,23 +30,26 @@ if not MONGODB_URI or not DB_NAME:
     本地开发：请在.env文件中设置这些变量
     Vercel部署：请在Vercel项目设置的Environment Variables中配置这些变量
     """
-    print(error_message, file=sys.stderr)
+    logger.error(error_message)
     sys.exit(1)
 
 try:
-    # 创建MongoDB客户端，添加连接选项
+    logger.info("Attempting to connect to MongoDB...")
+    # 创建MongoDB客户端，使用最新的稳定API版本
     client = MongoClient(
         MONGODB_URI,
-        serverSelectionTimeoutMS=5000,  # 服务器选择超时时间
-        connectTimeoutMS=10000,         # 连接超时时间
-        socketTimeoutMS=45000,          # 套接字超时时间
-        retryWrites=True,               # 启用重试写入
-        maxPoolSize=50                  # 连接池大小
+        server_api=ServerApi('1'),
+        tlsCAFile=certifi.where(),
+        serverSelectionTimeoutMS=30000,
+        connectTimeoutMS=20000,
+        socketTimeoutMS=20000,
+        retryWrites=True,
+        retryReads=True
     )
     
     # 测试连接
     client.admin.command('ping')
-    print("成功连接到MongoDB Atlas!")
+    logger.info("Successfully connected to MongoDB Atlas!")
     
     # 获取数据库实例
     db = client[DB_NAME]
@@ -60,5 +71,5 @@ try:
     content_relationships.create_index("target_id")
     
 except Exception as e:
-    print(f"MongoDB连接错误: {e}", file=sys.stderr)
+    logger.error(f"MongoDB connection error: {str(e)}", exc_info=True)
     sys.exit(1) 
