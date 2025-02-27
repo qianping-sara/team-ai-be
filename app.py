@@ -50,7 +50,15 @@ try:
 
     # 配置
     app.config['UPLOAD_FOLDER'] = os.getenv('UPLOAD_FOLDER', 'uploads')
-    app.config['MAX_CONTENT_LENGTH'] = int(os.getenv('MAX_CONTENT_LENGTH', 16 * 1024 * 1024))
+    
+    # 设置最大内容长度（16MB）
+    default_max_content_length = 16 * 1024 * 1024  # 16MB in bytes
+    try:
+        max_content_length = int(os.getenv('MAX_CONTENT_LENGTH', default_max_content_length))
+    except (TypeError, ValueError):
+        logger.warning(f"Invalid MAX_CONTENT_LENGTH value, using default: {default_max_content_length}")
+        max_content_length = default_max_content_length
+    app.config['MAX_CONTENT_LENGTH'] = max_content_length
 
     # 确保上传目录存在
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
